@@ -10687,7 +10687,7 @@
 	$.widget("ui.igDatePicker", $.ui.igDateEditor, {
 		options: {
 			/* type="dropdown|clear|spin" Gets visibility of the spin, clear and drop-down button. That option can be set only on initialization. Combinations like 'dropdown,spin' or 'spin,clear' are supported too.
-```
+				```
 					//Initialize
 					$(".selector").%%WidgetName%%({
 						buttonType : "dropdown"
@@ -12046,6 +12046,159 @@
 				this._updateState(true);
 			}
 		}
+	});
+	$.widget("ui.igTimePicker", $.ui.igDateEditor, {
+		options: {
+			/* type="object" Gets/Sets delta-value which is used to increment or decrement the editor date on spin actions.
+				When not editing (focused) the delta is applied on the day if available in the input mask or the lowest available period.
+				When in edit mode the time period, where the cursor is positioned, is incremented or decremented with the defined delta value.
+				Accepted values for deltas are positive integer numbers, and the fractional portion of floating point numbers is ignored.
+			```
+				//Initialize with object
+				$(".selector").%%WidgetName%%({
+					timeDelta: {
+						hours: 0,
+						minutes: 30,
+						seconds: 0
+					}
+				});
+
+				//Get
+				var timeDelta= $(".selector").%%WidgetName%%("option", "timeDelta");
+
+				//Set with object
+				$(".selector").%%WidgetName%%("option", "timeDelta", { minutes: 30 });
+			```
+			object type="object" A configuration object, which defines specific values for each time period. The option can accept the following format:
+				timeDelta: {
+					hours: 0,
+					minutes: 30,
+					seconds: 0
+				}
+			Time periods that don't have values use 1 as default.
+			*/
+			timeDelta: {hours: 0, minutes: 30, seconds: 0},
+			timeInputFormat: null,
+			timeDisplayFormat: null,			
+			/* @Ignored@ Removed from timepicker options*/
+			dateDisplayFormat: null,
+			/* @Ignored@ Removed from timepicker options*/
+			dateInputFormat: null,
+			/* @Ignored@ Removed from timepicker options*/
+			spinDelta: null,
+			/* @Ignored@ Removed from timepicker options*/
+			yearShift: null,
+			/* @Ignored@ Removed from timepicker options*/
+			displayTimeOffset: null,
+			/* @Ignored@ Removed from timepicker options*/
+			enableUTCDates: null,
+		},
+		events: {
+		},
+		_create: function () { // igTimePicker
+			$.ui.igDateEditor.prototype._create.call(this);
+		},
+		_initialize: function () {
+			if(this.options.timeDisplayFormat)
+				this.options.dateDisplayFormat = this.options.timeDisplayFormat;
+			else
+				this.options.dateDisplayFormat = "time";
+
+			if(this.options.timeInputFormat)
+				this.options.dateInputFormat = this.options.timeInputFormat;
+			else
+				this.options.dateInputFormat = "time";
+			
+			this._super();
+
+			this.options.isLimitedToListValues = true;
+
+			if(this.options.timeDelta)
+				this.options.spinDelta = this.options.timeDelta;
+
+			var buttons = this.options.buttonType.toString().split(/[\s,]+/), buttonsCountRendered = 0;
+
+			if ($.inArray("dropdown", buttons) !== -1)
+			{				
+				var timeDeltaSeconds = this.options.timeDelta.hours * 3600 + this.options.timeDelta.minutes * 60 + this.options.timeDelta.seconds;
+
+				var count = 86400 / timeDeltaSeconds;
+				
+				var initDate = new Date();
+				initDate.setHours(0);
+				initDate.setMinutes(0);
+				initDate.setSeconds(0);
+
+				this.options.listItems = [];
+
+				for(var i = 0; i < count; i++)
+				{
+					var date = new Date(initDate);
+					date.setSeconds(timeDeltaSeconds * i);
+					this.options.listItems.push(date);
+				}
+				
+			}			
+		},
+		getSelectedListItem: function () {
+			/* Gets the selected list item.
+			```
+			var selectedItem =  $(".selector").%%WidgetName%%("getSelectedListItem");
+			```
+				returnType="$" Selected list item.*/
+			return this._listItems().filter(".ui-igedit-listitemselected");
+		},
+		
+		dropDownVisible: function () {
+			/* Returns the visibility state of the calendar.
+			```
+			$(".selector").igTimePicker("dropDownVisible");
+			```
+				returnType="bool" The visibility state of the calendar. */
+			return $.ui.igTextEditor.prototype.dropDownVisible.call(this);
+		},
+		_getEditModeValue: function (val) { // TimePicker
+			// Use already parsed mask, other uses already handled by _parseValueByMask
+			if (this._maskedValue === "") {
+				return this._maskWithPrompts;
+			} else {
+				var date = new Date(val);
+				return this._getDisplayValue(date);
+			}
+		},
+
+		_processValueChanging: function (val) { // TimePicker
+			
+			if (this._validateValue(this._valueFromText(val))) {
+				this._super(val);
+			}
+		},
+
+		_validateValue: function (val) { //TimePicker
+			if	(this._super(val)){
+				var result;
+				if (val === undefined) {
+					result = false;
+				} else if (val === null) {
+					if (this.options.allowNullValue) {
+						result = val === this.options.nullValue ? true : false;
+					} else {
+						result = false;
+					}
+				} else if (this.options.isLimitedToListValues && this._dropDownList) {
+					if (this._valueIndexInList(val) !== -1) {
+						result = true;
+					} else {
+						this._sendNotification("warning", { optName: "allowedValuesMsg" });
+						result = false;
+					}
+				}else {
+					result = true;
+				}
+				return result;
+			}
+			return false;
+		},
 	});
 	return $;// REMOVE_FROM_COMBINED_FILES
 }));// REMOVE_FROM_COMBINED_FILES
